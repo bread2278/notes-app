@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { connection } from "next/server";
 import AuthForm from "@/components/AuthForm";
 import Notes, { type Note } from "@/components/Notes";
+import WeatherWidget from "@/components/WeatherWidget";
 import { createClient } from "@/lib/supabase/server";
 
 // Cache Components is on (Next.js 16 default), so anything that reads
@@ -9,6 +10,11 @@ import { createClient } from "@/lib/supabase/server";
 export default function Home() {
   return (
     <main className="flex flex-1 flex-col bg-zinc-50 px-4 dark:bg-black">
+      <div className="flex min-h-14 justify-end pt-3">
+        <Suspense fallback={<p className="text-xs text-zinc-500">Loading weather…</p>}>
+          <WeatherWidget />
+        </Suspense>
+      </div>
       <Suspense fallback={<p className="mt-24 text-center text-sm text-zinc-500">Loading…</p>}>
         <App />
       </Suspense>
