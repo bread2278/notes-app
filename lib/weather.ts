@@ -30,13 +30,22 @@ export async function getCurrentWeather(city: string = WEATHER_CITY): Promise<We
   // Never log `url` or the error object: the URL contains the API key.
   try {
     const res = await fetch(url, { cache: "no-store" });
-    const data = await res.json();
-    if (!res.ok) {
-      // WeatherAPI returns { error: { code, message } }; the message never contains the key.
-      const message: string = data?.error?.message ?? `HTTP ${res.status}`;
-      console.error(`[weather] WeatherAPI error ${res.status}: ${message}`);
-      return { ok: false, reason: "Weather unavailable" };
+    if (res.status !== 200) {
+      // WeatherAPI error bodies look like { error: { code, message } }.
+      const body = await res.text();
+      let message = res.statusText || "Unknown error";
+      try {
+        message = JSON.parse(body)?.error?.message ?? message;
+      } catch {
+        // Not JSON; keep the status text.
+      }
+      // Belt and braces: strip the key if it ever appears in the message.
+      message = message.split(key).join("[redacted]");
+      const reason = `Weather error ${res.status}: ${message}`;
+      console.error(`[weather] ${reason}`);
+      return { ok: false, reason };
     }
+    const data = await res.json();
     const icon: string = data.current.condition.icon; // e.g. "//cdn.weatherapi.com/..."
     return {
       ok: true,

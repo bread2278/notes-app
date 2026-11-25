@@ -8,7 +8,14 @@ export default async function WeatherWidget() {
   const result = await getCurrentWeather();
 
   if (!result.ok) {
-    return <p className="text-xs text-zinc-500">{result.reason}</p>;
+    return (
+      <p
+        role="alert"
+        className="max-w-xs rounded-lg border border-red-300 bg-red-50 px-3 py-1.5 text-xs text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-400"
+      >
+        {result.reason}
+      </p>
+    );
   }
 
   const { location, tempC, tempF, condition, iconUrl } = result.weather;
