@@ -44,3 +44,29 @@ drop policy if exists "Users can delete their own notes" on public.notes;
 create policy "Users can delete their own notes"
   on public.notes for delete to authenticated
   using ((select auth.uid()) = user_id);
+
+
+-- ---------------------------------------------------------------------------
+-- Weather cache: one row per city, refreshed by the server at most hourly.
+-- Server-only. The Next.js server reads/writes it with the secret key
+-- (service_role). Browsers, logged in or not, can't read or write it.
+-- ---------------------------------------------------------------------------
+
+create table if not exists public.weather_cache (
+  city        text primary key,          -- normalized: lower(trim(city))
+  location    text not null,             -- name WeatherAPI returned, e.g. "Dickson"
+  temp_c      integer not null,
+  temp_f      integer not null,
+  condition   text not null,
+  icon_url    text not null,
+  fetched_at  timestamptz not null default now()
+);
+
+-- Remove any default access for the public roles...
+revoke all on public.weather_cache from anon, authenticated;
+-- ...and explicitly grant the server role what it needs (no delete needed).
+grant select, insert, update on public.weather_cache to service_role;
+
+-- Second lock: RLS on with no policies, so anon/authenticated get nothing even
+-- if someone grants them access later. service_role bypasses RLS.
+alter table public.weather_cache enable row level security;
