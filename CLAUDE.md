@@ -3,7 +3,7 @@
 # Notes app — Next.js + Supabase
 
 A single-page notes app. Users sign up / log in / log out with Supabase Auth
-(email + password) and can create, view, edit and delete only their own notes.
+(email + password, or GitHub OAuth) and can create, view, edit and delete only their own notes.
 Ownership is enforced in Postgres with Row Level Security (RLS), not just in the UI.
 
 ## Stack
@@ -27,7 +27,8 @@ next.config.ts       Next.js config
 eslint.config.mjs    ESLint flat config
 tsconfig.json        TypeScript config; `@/*` maps to the project root
 .env.local           Supabase URL + publishable key (git-ignored, never commit)
-components/          AuthForm.tsx (log in / sign up), Notes.tsx (notes CRUD + log out)
+app/auth/callback/   route.ts: GitHub OAuth callback; exchanges ?code= for a session, redirects to /
+components/          AuthForm.tsx (email log in / sign up + Continue with GitHub), Notes.tsx (notes CRUD + log out)
 lib/supabase/        client.ts (browser), server.ts (Server Components), proxy.ts (session refresh)
 proxy.ts             Next.js 16 proxy (formerly middleware): refreshes the auth cookie on each request
 supabase/schema.sql  notes table + RLS policies, run by hand in the Supabase SQL editor
