@@ -266,13 +266,16 @@ export default function Notes({
                   ) : (
                     <div className="flex flex-col gap-2">
                       <div className="flex items-baseline justify-between gap-4">
-                        <h2 className="text-base font-semibold">{note.title || "Untitled"}</h2>
+                        {/* min-w-0 + wrap-anywhere: long unbroken titles wrap inside the card. */}
+                        <h2 className="min-w-0 text-base font-semibold wrap-anywhere">
+                          {note.title || "Untitled"}
+                        </h2>
                         <time className="shrink-0 text-xs text-muted-foreground">
                           {new Date(note.created_at).toLocaleString()}
                         </time>
                       </div>
                       {note.content && (
-                        <p className="whitespace-pre-wrap text-sm leading-relaxed text-card-foreground/90">
+                        <p className="whitespace-pre-wrap text-sm leading-relaxed text-card-foreground/90 wrap-break-word">
                           {note.content}
                         </p>
                       )}
