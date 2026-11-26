@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 
 export type Note = {
@@ -17,6 +18,8 @@ export type Note = {
   created_at: string;
 };
 
+/** The action in flight; per-note actions carry the note id so only that button spins. */
+type Pending = "create" | "logout" | `save:${string}` | `delete:${string}`;
 
 export default function Notes({ email, initialNotes }: { email: string; initialNotes: Note[] }) {
   const router = useRouter();
@@ -28,12 +31,16 @@ export default function Notes({ email, initialNotes }: { email: string; initialN
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [pending, setPending] = useState<Pending | null>(null);
+  // True while router.refresh() swaps back to the login screen after log out.
+  const [refreshing, startRefresh] = useTransition();
+  // Every action button is disabled while anything is pending.
+  const busy = pending !== null || refreshing;
 
   async function createNote(e: React.FormEvent) {
     e.preventDefault();
     if (!title.trim() && !content.trim()) return;
-    setBusy(true);
+    setPending("create");
     setError(null);
     // user_id is filled in by the database default (auth.uid()); RLS checks it.
     const { data, error } = await supabase
@@ -47,7 +54,7 @@ export default function Notes({ email, initialNotes }: { email: string; initialN
       setTitle("");
       setContent("");
     }
-    setBusy(false);
+    setPending(null);
   }
 
   function startEdit(note: Note) {
@@ -57,7 +64,7 @@ export default function Notes({ email, initialNotes }: { email: string; initialN
   }
 
   async function saveEdit(id: string) {
-    setBusy(true);
+    setPending(`save:${id}`);
     setError(null);
     const { data, error } = await supabase
       .from("notes")
@@ -70,22 +77,24 @@ export default function Notes({ email, initialNotes }: { email: string; initialN
       setNotes(notes.map((n) => (n.id === id ? (data as Note) : n)));
       setEditingId(null);
     }
-    setBusy(false);
+    setPending(null);
   }
 
   async function deleteNote(id: string) {
     if (!confirm("Delete this note?")) return;
-    setBusy(true);
+    setPending(`delete:${id}`);
     setError(null);
     const { error } = await supabase.from("notes").delete().eq("id", id);
     if (error) setError(error.message);
     else setNotes(notes.filter((n) => n.id !== id));
-    setBusy(false);
+    setPending(null);
   }
 
   async function logOut() {
+    setPending("logout");
     await supabase.auth.signOut();
-    router.refresh();
+    startRefresh(() => router.refresh());
+    setPending(null);
   }
 
   return (
@@ -94,7 +103,13 @@ export default function Notes({ email, initialNotes }: { email: string; initialN
         <h1 className="text-2xl font-semibold">My notes</h1>
         <div className="flex items-center gap-3 text-sm">
           <span className="truncate text-muted-foreground">{email}</span>
-          <Button variant="outline" onClick={logOut}>
+          <Button
+            variant="outline"
+            onClick={logOut}
+            disabled={busy}
+            aria-busy={pending === "logout" || refreshing}
+          >
+            {(pending === "logout" || refreshing) && <Spinner data-icon="inline-start" />}
             Log out
           </Button>
         </div>
@@ -119,7 +134,8 @@ export default function Notes({ email, initialNotes }: { email: string; initialN
             />
           </CardContent>
           <CardFooter className="justify-end">
-            <Button type="submit" disabled={busy}>
+            <Button type="submit" disabled={busy} aria-busy={pending === "create"}>
+              {pending === "create" && <Spinner data-icon="inline-start" />}
               Add note
             </Button>
           </CardFooter>
@@ -163,7 +179,13 @@ export default function Notes({ email, initialNotes }: { email: string; initialN
                         >
                           Cancel
                         </Button>
-                        <Button key="save" onClick={() => saveEdit(note.id)} disabled={busy}>
+                        <Button
+                          key="save"
+                          onClick={() => saveEdit(note.id)}
+                          disabled={busy}
+                          aria-busy={pending === `save:${note.id}`}
+                        >
+                          {pending === `save:${note.id}` && <Spinner data-icon="inline-start" />}
                           Save
                         </Button>
                       </div>
@@ -197,8 +219,10 @@ export default function Notes({ email, initialNotes }: { email: string; initialN
                           size="sm"
                           onClick={() => deleteNote(note.id)}
                           disabled={busy}
+                          aria-busy={pending === `delete:${note.id}`}
                           className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                         >
+                          {pending === `delete:${note.id}` && <Spinner data-icon="inline-start" />}
                           Delete
                         </Button>
                       </div>

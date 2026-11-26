@@ -1,10 +1,11 @@
 import { Suspense } from "react";
+import { cookies } from "next/headers";
 import { connection } from "next/server";
 import AuthForm from "@/components/AuthForm";
 import Notes, { type Note } from "@/components/Notes";
 import WeatherWidget from "@/components/WeatherWidget";
+import { LoginSkeleton, NotesSkeleton, WeatherSkeleton } from "@/components/Skeletons";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Skeleton } from "@/components/ui/skeleton";
 import { createClient } from "@/lib/supabase/server";
 
 // Cache Components is on (Next.js 16 default), so anything that reads
@@ -13,16 +14,29 @@ export default function Home() {
   return (
     <main className="flex flex-1 flex-col bg-background px-4 pb-10">
       <div className="flex min-h-14 justify-end pt-3">
-        <Suspense fallback={<Skeleton aria-label="Loading weather" className="h-11 w-44 rounded-xl" />}>
+        <Suspense fallback={<WeatherSkeleton />}>
           <WeatherWidget />
         </Suspense>
       </div>
-      <Suspense
-        fallback={<Skeleton aria-label="Loading" className="mx-auto my-auto h-80 w-full max-w-sm rounded-xl" />}
-      >
-        <App />
+      <Suspense fallback={<NotesSkeleton />}>
+        <Gate />
       </Suspense>
     </main>
+  );
+}
+
+// Picks the right skeleton while the real auth check (a network call) runs.
+// Only checks whether a Supabase auth cookie exists, which is instant; it is a
+// UI hint, never an access decision (App verifies with getUser(), and RLS
+// enforces access in the database).
+async function Gate() {
+  const cookieStore = await cookies();
+  const maybeLoggedIn = cookieStore.getAll().some((c) => /^sb-.+-auth-token(\.\d+)?$/.test(c.name));
+
+  return (
+    <Suspense fallback={maybeLoggedIn ? <NotesSkeleton /> : <LoginSkeleton />}>
+      <App />
+    </Suspense>
   );
 }
 
