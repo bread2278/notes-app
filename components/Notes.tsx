@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
+import { flushSync } from "react-dom";
 import { useRouter } from "next/navigation";
 import { NotepadTextIcon } from "lucide-react";
 import { toast } from "sonner";
@@ -63,6 +64,24 @@ export default function Notes({
   // Every action button is disabled while anything is pending.
   const busy = pending !== null || refreshing;
 
+  // Focus management for keyboard and screen-reader users: when the control
+  // that had focus disappears (Edit -> form, Save/Cancel -> view, Delete),
+  // move focus somewhere sensible instead of dropping it to the page top.
+  const editButtons = useRef(new Map<string, HTMLButtonElement>());
+  const composerTitle = useRef<HTMLInputElement>(null);
+  const emptyStateButton = useRef<HTMLButtonElement>(null);
+
+  /** Leave edit mode and put focus back on that note's Edit button. */
+  function closeEditor(id: string, update?: () => void) {
+    // flushSync renders now, so the Edit button exists (and is enabled) before we focus it.
+    flushSync(() => {
+      update?.();
+      setEditingId(null);
+      setPending(null);
+    });
+    editButtons.current.get(id)?.focus();
+  }
+
   async function createNote(e: React.FormEvent) {
     e.preventDefault();
     if (!canCreate) return;
@@ -115,8 +134,7 @@ export default function Notes({
       logDevError("save note", error);
       toast.error(friendly.saveNote);
     } else {
-      setNotes(notes.map((n) => (n.id === id ? data : n)));
-      setEditingId(null);
+      closeEditor(id, () => setNotes(notes.map((n) => (n.id === id ? data : n))));
       toast.success("Note saved.");
     }
     setPending(null);
@@ -132,7 +150,18 @@ export default function Notes({
       logDevError("delete note", error);
       toast.error(friendly.deleteNote);
     } else {
-      setNotes(notes.filter((n) => n.id !== id));
+      // Focus the next note (or the previous one if this was last); with no
+      // notes left, the empty-state button or the new-note Title field.
+      const index = notes.findIndex((n) => n.id === id);
+      const neighbor = notes[index + 1] ?? notes[index - 1];
+      flushSync(() => {
+        setNotes(notes.filter((n) => n.id !== id));
+        setPending(null);
+      });
+      const target = neighbor
+        ? editButtons.current.get(neighbor.id)
+        : (emptyStateButton.current ?? composerTitle.current);
+      target?.focus();
       toast.success("Note deleted.");
     }
     setPending(null);
@@ -187,7 +216,7 @@ export default function Notes({
             </CardDescription>
           </CardHeader>
           <CardContent className="flex justify-center">
-            <Button size="lg" onClick={() => setComposing(true)}>
+            <Button ref={emptyStateButton} size="lg" onClick={() => setComposing(true)}>
               Create your first note
             </Button>
           </CardContent>
@@ -198,6 +227,7 @@ export default function Notes({
           <form onSubmit={createNote} className="contents">
             <CardContent className="flex flex-col gap-2">
               <Input
+                ref={composerTitle}
                 placeholder="Title"
                 aria-label="Title"
                 // Coming from the empty state: put the cursor straight in the form.
@@ -232,6 +262,8 @@ export default function Notes({
                   {editingId === note.id ? (
                     <div className="flex flex-col gap-2">
                       <Input
+                        // Edit was just pressed and has disappeared: move focus into the form.
+                        autoFocus
                         aria-label="Title"
                         value={editTitle}
                         onChange={(e) => setEditTitle(e.target.value)}
@@ -247,7 +279,7 @@ export default function Notes({
                         <Button
                           key="cancel"
                           variant="outline"
-                          onClick={() => setEditingId(null)}
+                          onClick={() => closeEditor(note.id)}
                           disabled={busy}
                         >
                           Cancel
@@ -284,6 +316,10 @@ export default function Notes({
                       <div className="-ml-2.5 flex gap-1">
                         <Button
                           key="edit"
+                          ref={(el: HTMLButtonElement | null) => {
+                            if (el) editButtons.current.set(note.id, el);
+                            else editButtons.current.delete(note.id);
+                          }}
                           variant="ghost"
                           size="sm"
                           onClick={() => startEdit(note)}
