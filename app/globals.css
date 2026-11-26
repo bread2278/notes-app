@@ -73,7 +73,9 @@
   /* Field and outline-button edges: >= 3:1 against white cards (WCAG 1.4.11).
      shadcn's default (0.922) measured 1.26:1. */
   --input: oklch(0 0 0 / 45%);
-  --ring: oklch(0.708 0 0);
+  /* Focus ring: >= 3:1 against white cards and the page (WCAG 1.4.11).
+     shadcn's default (0.708 at 50 percent) was nearly invisible. */
+  --ring: oklch(0.45 0 0);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -111,7 +113,9 @@
   /* Field and outline-button edges: >= 3:1 against dark cards (WCAG 1.4.11).
      shadcn's default (white at 15 percent) measured 1.57:1. */
   --input: oklch(1 0 0 / 40%);
-  --ring: oklch(0.556 0 0);
+  /* Focus ring: >= 3:1 against dark cards and the page (WCAG 1.4.11).
+     shadcn's default (0.556 at 50 percent) measured 1.89:1. */
+  --ring: oklch(0.8 0 0);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
