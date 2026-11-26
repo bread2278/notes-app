@@ -3,15 +3,16 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 // Loading placeholders that mirror the real layouts in Notes.tsx and
 // AuthForm.tsx, so content swaps in without the page jumping around.
+//
+// Each one is a role="status" region with visually hidden text, so screen
+// readers announce that something is loading. (aria-label on a plain div is
+// ignored by screen readers, so it can't do this on its own.)
 
 /** Placeholder for the logged-in notes screen: header, composer, note cards. */
 export function NotesSkeleton({ count = 3 }: { count?: number }) {
   return (
-    <div
-      className="mx-auto flex w-full max-w-2xl flex-col gap-6 pt-2"
-      aria-busy="true"
-      aria-label="Loading notes"
-    >
+    <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 pt-2" role="status" aria-busy="true">
+      <span className="sr-only">Loading notes…</span>
       <div className="flex items-center justify-between gap-4">
         <Skeleton className="h-8 w-36" />
         <div className="flex items-center gap-3">
@@ -66,7 +67,8 @@ export function NoteCardSkeleton() {
 /** Placeholder for the logged-out login card. */
 export function LoginSkeleton() {
   return (
-    <Card className="mx-auto my-auto w-full max-w-sm" aria-busy="true" aria-label="Loading">
+    <Card className="mx-auto my-auto w-full max-w-sm" role="status" aria-busy="true">
+      <span className="sr-only">Loading…</span>
       <CardHeader>
         <Skeleton className="h-6 w-24" />
         <Skeleton className="h-4 w-48" />
@@ -88,5 +90,10 @@ export function LoginSkeleton() {
 
 /** Placeholder for the top-right weather widget. */
 export function WeatherSkeleton() {
-  return <Skeleton aria-label="Loading weather" className="h-11 w-44 rounded-xl" />;
+  return (
+    <div role="status">
+      <span className="sr-only">Loading weather…</span>
+      <Skeleton className="h-11 w-44 rounded-xl" />
+    </div>
+  );
 }
