@@ -63,7 +63,18 @@ NEXT_PUBLIC_SUPABASE_URL=...
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=...
 SUPABASE_SECRET_KEY=...    # server-only; without it the weather cache is skipped
 WEATHER_API_KEY=...        # server-only
+SIMULATE_DB_ERROR=false    # dev only: true = note saves/deletes fail, load = loading notes fails too
 ```
+
+`SIMULATE_DB_ERROR` is read only when `NODE_ENV` is `development` (`lib/simulate.ts`), so it
+can't affect production. `next dev` reloads `.env.local` automatically; refresh the page.
+
+## Errors and feedback
+
+- Users see short friendly messages only (`friendly` in `lib/errors.ts`), as sonner toasts
+  (`<Toaster />` in `app/layout.tsx`) or an inline Alert. Never show `error.message`.
+- `logDevError()` logs the full error and a stack trace in development only.
+- Wrap note queries in `runDb()` so the error simulation applies.
 
 ## Rules
 

@@ -2,6 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { toast } from "sonner";
+import { friendly, logDevError } from "@/lib/errors";
 import { createClient } from "@/lib/supabase/client";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -14,11 +16,17 @@ type AuthAction = "login" | "signup" | "github";
 
 export default function AuthForm() {
   const router = useRouter();
-  // /auth/callback sends us back here with ?auth_error=... if GitHub sign-in fails.
+  // /auth/callback sends us back here with ?auth_error=github if GitHub
+  // sign-in fails; show a friendly message, never what's in the URL.
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(searchParams.get("auth_error"));
+  // Inline message for problems the user can fix here (not raw API errors).
+  const [error, setError] = useState<string | null>(
+    searchParams.get("auth_error") ? friendly.github : null,
+  );
+  // Log in / Sign up need both fields.
+  const canSubmit = email.trim() !== "" && password !== "";
   const [message, setMessage] = useState<string | null>(null);
   // Which auth action is in flight (drives the spinner on that button).
   const [pending, setPending] = useState<AuthAction | null>(null);
@@ -44,12 +52,16 @@ export default function AuthForm() {
 
     if (mode === "login") {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) setError(error.message);
-      else startRefresh(() => router.refresh());
+      if (error) {
+        logDevError("log in", error);
+        toast.error(friendly.logIn);
+      } else startRefresh(() => router.refresh());
     } else {
       const { data, error } = await supabase.auth.signUp({ email, password });
-      if (error) setError(error.message);
-      else if (!data.session)
+      if (error) {
+        logDevError("sign up", error);
+        toast.error(friendly.signUp);
+      } else if (!data.session)
         setMessage("Account created. Check your inbox to confirm your email, then log in.");
       else startRefresh(() => router.refresh());
     }
@@ -69,7 +81,8 @@ export default function AuthForm() {
       options: { redirectTo: `${window.location.origin}/auth/callback` },
     });
     if (error) {
-      setError(error.message);
+      logDevError("GitHub sign-in", error);
+      toast.error(friendly.github);
       setPending(null);
     }
   }
@@ -133,7 +146,7 @@ export default function AuthForm() {
             <Button
               type="submit"
               size="lg"
-              disabled={busy}
+              disabled={busy || !canSubmit}
               aria-busy={spinning("login")}
               className="flex-1"
             >
@@ -144,7 +157,7 @@ export default function AuthForm() {
               type="button"
               variant="ghost"
               size="lg"
-              disabled={busy}
+              disabled={busy || !canSubmit}
               aria-busy={spinning("signup")}
               onClick={() => handle("signup")}
               className="flex-1"

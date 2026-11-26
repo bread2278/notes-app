@@ -6,6 +6,8 @@ import Notes, { type Note } from "@/components/Notes";
 import WeatherWidget from "@/components/WeatherWidget";
 import { LoginSkeleton, NotesSkeleton, WeatherSkeleton } from "@/components/Skeletons";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { friendly, logDevError, runDb } from "@/lib/errors";
+import { getSimulateDbError } from "@/lib/simulate";
 import { createClient } from "@/lib/supabase/server";
 
 // Cache Components is on (Next.js 16 default), so anything that reads
@@ -52,20 +54,28 @@ async function App() {
 
   if (!user) return <AuthForm />;
 
+  const simulate = getSimulateDbError(); // always off outside development
+
   // RLS limits this to the logged-in user's rows; no user_id filter is needed.
-  const { data: notes, error } = await supabase
-    .from("notes")
-    .select("*")
-    .order("created_at", { ascending: false });
+  const { data: notes, error } = await runDb<Note[]>(simulate.load, () =>
+    supabase.from("notes").select("*").order("created_at", { ascending: false }),
+  );
+  if (error) logDevError("load notes", error);
 
   return (
     <>
       {error && (
         <Alert variant="destructive" className="mx-auto mt-4 max-w-2xl">
-          <AlertDescription>Couldn&apos;t load notes: {error.message}</AlertDescription>
+          <AlertDescription>{friendly.loadNotes}</AlertDescription>
         </Alert>
       )}
-      <Notes key={user.id} email={user.email ?? ""} initialNotes={(notes ?? []) as Note[]} />
+      <Notes
+        key={user.id}
+        email={user.email ?? ""}
+        initialNotes={notes ?? []}
+        simulateDbError={simulate.writes}
+        loadFailed={!!error}
+      />
     </>
   );
 }

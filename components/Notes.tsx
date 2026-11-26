@@ -3,8 +3,9 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { NotepadTextIcon } from "lucide-react";
+import { toast } from "sonner";
+import { friendly, logDevError, runDb } from "@/lib/errors";
 import { createClient } from "@/lib/supabase/client";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -29,7 +30,19 @@ export type Note = {
 /** The action in flight; per-note actions carry the note id so only that button spins. */
 type Pending = "create" | "logout" | `save:${string}` | `delete:${string}`;
 
-export default function Notes({ email, initialNotes }: { email: string; initialNotes: Note[] }) {
+export default function Notes({
+  email,
+  initialNotes,
+  simulateDbError = false,
+  loadFailed = false,
+}: {
+  email: string;
+  initialNotes: Note[];
+  /** Loading notes failed, so an empty list doesn't mean "no notes yet". */
+  loadFailed?: boolean;
+  /** Dev-only: make every note save/delete fail (see lib/simulate.ts). */
+  simulateDbError?: boolean;
+}) {
   const router = useRouter();
   const supabase = createClient();
   const [notes, setNotes] = useState<Note[]>(initialNotes);
@@ -38,12 +51,13 @@ export default function Notes({ email, initialNotes }: { email: string; initialN
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
-  const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState<Pending | null>(null);
+  // "Add note" needs something to save.
+  const canCreate = title.trim() !== "" || content.trim() !== "";
   // With zero notes the composer is hidden behind the empty state until the
   // user clicks "Create your first note".
   const [composing, setComposing] = useState(false);
-  const showEmptyState = notes.length === 0 && !composing;
+  const showEmptyState = notes.length === 0 && !composing && !loadFailed;
   // True while router.refresh() swaps back to the login screen after log out.
   const [refreshing, startRefresh] = useTransition();
   // Every action button is disabled while anything is pending.
@@ -51,22 +65,34 @@ export default function Notes({ email, initialNotes }: { email: string; initialN
 
   async function createNote(e: React.FormEvent) {
     e.preventDefault();
-    if (!title.trim() && !content.trim()) return;
+    if (!canCreate) return;
     setPending("create");
-    setError(null);
     // user_id is filled in by the database default (auth.uid()); RLS checks it.
-    const { data, error } = await supabase
-      .from("notes")
-      .insert({ title: title.trim(), content: content.trim() })
-      .select()
-      .single();
-    if (error) setError(error.message);
-    else {
-      setNotes([data as Note, ...notes]);
+    const { data, error } = await runDb<Note>(simulateDbError, () =>
+      supabase
+        .from("notes")
+        .insert({ title: title.trim(), content: content.trim() })
+        .select()
+        .single(),
+    );
+    if (error || !data) {
+      logDevError("create note", error);
+      toast.error(friendly.saveNote);
+    } else {
+      setNotes([data, ...notes]);
       setTitle("");
       setContent("");
+      toast.success("Note saved.");
     }
     setPending(null);
+  }
+
+  // "Save" needs a non-empty note that differs from what's already saved.
+  function canSave(note: Note) {
+    const t = editTitle.trim();
+    const c = editContent.trim();
+    if (!t && !c) return false;
+    return t !== note.title || c !== note.content;
   }
 
   function startEdit(note: Note) {
@@ -77,17 +103,21 @@ export default function Notes({ email, initialNotes }: { email: string; initialN
 
   async function saveEdit(id: string) {
     setPending(`save:${id}`);
-    setError(null);
-    const { data, error } = await supabase
-      .from("notes")
-      .update({ title: editTitle.trim(), content: editContent.trim() })
-      .eq("id", id)
-      .select()
-      .single();
-    if (error) setError(error.message);
-    else {
-      setNotes(notes.map((n) => (n.id === id ? (data as Note) : n)));
+    const { data, error } = await runDb<Note>(simulateDbError, () =>
+      supabase
+        .from("notes")
+        .update({ title: editTitle.trim(), content: editContent.trim() })
+        .eq("id", id)
+        .select()
+        .single(),
+    );
+    if (error || !data) {
+      logDevError("save note", error);
+      toast.error(friendly.saveNote);
+    } else {
+      setNotes(notes.map((n) => (n.id === id ? data : n)));
       setEditingId(null);
+      toast.success("Note saved.");
     }
     setPending(null);
   }
@@ -95,17 +125,28 @@ export default function Notes({ email, initialNotes }: { email: string; initialN
   async function deleteNote(id: string) {
     if (!confirm("Delete this note?")) return;
     setPending(`delete:${id}`);
-    setError(null);
-    const { error } = await supabase.from("notes").delete().eq("id", id);
-    if (error) setError(error.message);
-    else setNotes(notes.filter((n) => n.id !== id));
+    const { error } = await runDb<null>(simulateDbError, () =>
+      supabase.from("notes").delete().eq("id", id),
+    );
+    if (error) {
+      logDevError("delete note", error);
+      toast.error(friendly.deleteNote);
+    } else {
+      setNotes(notes.filter((n) => n.id !== id));
+      toast.success("Note deleted.");
+    }
     setPending(null);
   }
 
   async function logOut() {
     setPending("logout");
-    await supabase.auth.signOut();
-    startRefresh(() => router.refresh());
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      logDevError("log out", error);
+      toast.error(friendly.logOut);
+    } else {
+      startRefresh(() => router.refresh());
+    }
     setPending(null);
   }
 
@@ -169,19 +210,13 @@ export default function Notes({ email, initialNotes }: { email: string; initialN
               />
             </CardContent>
             <CardFooter className="justify-end">
-              <Button type="submit" disabled={busy} aria-busy={pending === "create"}>
+              <Button type="submit" disabled={busy || !canCreate} aria-busy={pending === "create"}>
                 {pending === "create" && <Spinner data-icon="inline-start" />}
                 Add note
               </Button>
             </CardFooter>
           </form>
         </Card>
-      )}
-
-      {error && (
-        <Alert variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
       )}
 
       {notes.length > 0 && (
@@ -216,7 +251,7 @@ export default function Notes({ email, initialNotes }: { email: string; initialN
                         <Button
                           key="save"
                           onClick={() => saveEdit(note.id)}
-                          disabled={busy}
+                          disabled={busy || !canSave(note)}
                           aria-busy={pending === `save:${note.id}`}
                         >
                           {pending === `save:${note.id}` && <Spinner data-icon="inline-start" />}
