@@ -1,5 +1,6 @@
 import { connection } from "next/server";
 import { getCurrentWeather } from "@/lib/weather";
+import { Card } from "@/components/ui/card";
 
 // Server Component: fetches on the server at request time. Only the rendered
 // text and icon reach the browser — never the API key.
@@ -20,10 +21,7 @@ export default async function WeatherWidget() {
 
   const { location, tempC, tempF, condition, iconUrl } = result.weather;
   return (
-    <div
-      className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm dark:border-zinc-800 dark:bg-zinc-900"
-      title={condition}
-    >
+    <Card size="sm" className="flex-row items-center gap-2 px-3 py-1.5" title={condition}>
       {/* eslint-disable-next-line @next/next/no-img-element -- tiny external icon, no optimization needed */}
       <img src={iconUrl} alt="" width={32} height={32} className="h-8 w-8" />
       <div className="leading-tight">
@@ -34,6 +32,6 @@ export default async function WeatherWidget() {
           {location} · {condition}
         </p>
       </div>
-    </div>
+    </Card>
   );
 }

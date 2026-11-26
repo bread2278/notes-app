@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -59,15 +60,21 @@ export default function AuthForm() {
   }
 
   return (
+    <Card className="mx-auto mt-24 w-full max-w-sm">
+      <CardHeader>
+        <CardTitle>
+          <h1 className="text-xl font-semibold">Notes</h1>
+        </CardTitle>
+        <CardDescription>Log in or create an account.</CardDescription>
+      </CardHeader>
+      <CardContent>
     <form
-      className="mx-auto mt-24 flex w-full max-w-sm flex-col gap-3 rounded-lg border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
+      className="flex flex-col gap-3"
       onSubmit={(e) => {
         e.preventDefault();
         handle("login");
       }}
     >
-      <h1 className="text-xl font-semibold">Notes</h1>
-      <p className="text-sm text-zinc-500">Log in or create an account.</p>
 
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="email">Email</Label>
@@ -124,5 +131,7 @@ export default function AuthForm() {
         Continue with GitHub
       </Button>
     </form>
+      </CardContent>
+    </Card>
   );
 }

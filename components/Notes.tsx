@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -98,10 +99,9 @@ export default function Notes({ email, initialNotes }: { email: string; initialN
         </div>
       </header>
 
-      <form
-        onSubmit={createNote}
-        className="flex flex-col gap-2 rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900"
-      >
+      <Card>
+        <CardContent>
+      <form onSubmit={createNote} className="flex flex-col gap-2">
         <Input
           placeholder="Title"
           aria-label="Title"
@@ -121,6 +121,8 @@ export default function Notes({ email, initialNotes }: { email: string; initialN
           </Button>
         </div>
       </form>
+        </CardContent>
+      </Card>
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 
@@ -129,10 +131,9 @@ export default function Notes({ email, initialNotes }: { email: string; initialN
       ) : (
         <ul className="flex flex-col gap-3">
           {notes.map((note) => (
-            <li
-              key={note.id}
-              className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900"
-            >
+            <li key={note.id}>
+              <Card>
+                <CardContent>
               {editingId === note.id ? (
                 <div className="flex flex-col gap-2">
                   <Input
@@ -178,6 +179,8 @@ export default function Notes({ email, initialNotes }: { email: string; initialN
                   </div>
                 </div>
               )}
+                </CardContent>
+              </Card>
             </li>
           ))}
         </ul>
