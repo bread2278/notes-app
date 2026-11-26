@@ -2,10 +2,18 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { NotepadTextIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
@@ -32,6 +40,10 @@ export default function Notes({ email, initialNotes }: { email: string; initialN
   const [editContent, setEditContent] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState<Pending | null>(null);
+  // With zero notes the composer is hidden behind the empty state until the
+  // user clicks "Create your first note".
+  const [composing, setComposing] = useState(false);
+  const showEmptyState = notes.length === 0 && !composing;
   // True while router.refresh() swaps back to the login screen after log out.
   const [refreshing, startRefresh] = useTransition();
   // Every action button is disabled while anything is pending.
@@ -115,32 +127,56 @@ export default function Notes({ email, initialNotes }: { email: string; initialN
         </div>
       </header>
 
-      <Card>
-        {/* `contents` keeps CardContent/CardFooter as direct flex children of the Card. */}
-        <form onSubmit={createNote} className="contents">
-          <CardContent className="flex flex-col gap-2">
-            <Input
-              placeholder="Title"
-              aria-label="Title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-            />
-            <Textarea
-              placeholder="Write a note…"
-              aria-label="Note"
-              rows={3}
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-            />
-          </CardContent>
-          <CardFooter className="justify-end">
-            <Button type="submit" disabled={busy} aria-busy={pending === "create"}>
-              {pending === "create" && <Spinner data-icon="inline-start" />}
-              Add note
+      {showEmptyState ? (
+        <Card className="mx-auto mt-10 w-full max-w-md text-center">
+          <CardHeader className="justify-items-center gap-2">
+            <div className="mb-2 flex size-12 items-center justify-center rounded-full bg-muted">
+              <NotepadTextIcon aria-hidden="true" className="size-6 text-muted-foreground" />
+            </div>
+            <CardTitle className="text-lg font-semibold">
+              <h2>No notes yet</h2>
+            </CardTitle>
+            <CardDescription className="text-balance">
+              Capture ideas, to-dos, and anything you want to remember. Only you can see your
+              notes.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex justify-center">
+            <Button size="lg" onClick={() => setComposing(true)}>
+              Create your first note
             </Button>
-          </CardFooter>
-        </form>
-      </Card>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          {/* `contents` keeps CardContent/CardFooter as direct flex children of the Card. */}
+          <form onSubmit={createNote} className="contents">
+            <CardContent className="flex flex-col gap-2">
+              <Input
+                placeholder="Title"
+                aria-label="Title"
+                // Coming from the empty state: put the cursor straight in the form.
+                autoFocus={composing}
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+              />
+              <Textarea
+                placeholder="Write a note…"
+                aria-label="Note"
+                rows={3}
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+              />
+            </CardContent>
+            <CardFooter className="justify-end">
+              <Button type="submit" disabled={busy} aria-busy={pending === "create"}>
+                {pending === "create" && <Spinner data-icon="inline-start" />}
+                Add note
+              </Button>
+            </CardFooter>
+          </form>
+        </Card>
+      )}
 
       {error && (
         <Alert variant="destructive">
@@ -148,9 +184,7 @@ export default function Notes({ email, initialNotes }: { email: string; initialN
         </Alert>
       )}
 
-      {notes.length === 0 ? (
-        <p className="text-center text-sm text-muted-foreground">No notes yet.</p>
-      ) : (
+      {notes.length > 0 && (
         <ul className="flex flex-col gap-3">
           {notes.map((note) => (
             <li key={note.id}>
