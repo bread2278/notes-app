@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -89,11 +89,11 @@ export default function Notes({ email, initialNotes }: { email: string; initialN
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-10">
-      <header className="flex items-center justify-between">
+    <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 pt-2">
+      <header className="flex items-center justify-between gap-4">
         <h1 className="text-2xl font-semibold">My notes</h1>
         <div className="flex items-center gap-3 text-sm">
-          <span className="text-zinc-500">{email}</span>
+          <span className="truncate text-muted-foreground">{email}</span>
           <Button variant="outline" onClick={logOut}>
             Log out
           </Button>
@@ -101,28 +101,29 @@ export default function Notes({ email, initialNotes }: { email: string; initialN
       </header>
 
       <Card>
-        <CardContent>
-      <form onSubmit={createNote} className="flex flex-col gap-2">
-        <Input
-          placeholder="Title"
-          aria-label="Title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-        />
-        <Textarea
-          placeholder="Write a note…"
-          aria-label="Note"
-          rows={3}
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-        />
-        <div>
-          <Button type="submit" disabled={busy}>
-            Add note
-          </Button>
-        </div>
-      </form>
-        </CardContent>
+        {/* `contents` keeps CardContent/CardFooter as direct flex children of the Card. */}
+        <form onSubmit={createNote} className="contents">
+          <CardContent className="flex flex-col gap-2">
+            <Input
+              placeholder="Title"
+              aria-label="Title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+            />
+            <Textarea
+              placeholder="Write a note…"
+              aria-label="Note"
+              rows={3}
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+            />
+          </CardContent>
+          <CardFooter className="justify-end">
+            <Button type="submit" disabled={busy}>
+              Add note
+            </Button>
+          </CardFooter>
+        </form>
       </Card>
 
       {error && (
@@ -132,58 +133,77 @@ export default function Notes({ email, initialNotes }: { email: string; initialN
       )}
 
       {notes.length === 0 ? (
-        <p className="text-center text-sm text-zinc-500">No notes yet.</p>
+        <p className="text-center text-sm text-muted-foreground">No notes yet.</p>
       ) : (
         <ul className="flex flex-col gap-3">
           {notes.map((note) => (
             <li key={note.id}>
               <Card>
                 <CardContent>
-              {editingId === note.id ? (
-                <div className="flex flex-col gap-2">
-                  <Input
-                    aria-label="Title"
-                    value={editTitle}
-                    onChange={(e) => setEditTitle(e.target.value)}
-                  />
-                  <Textarea
-                    aria-label="Note"
-                    rows={4}
-                    value={editContent}
-                    onChange={(e) => setEditContent(e.target.value)}
-                  />
-                  <div className="flex gap-2">
-                    <Button onClick={() => saveEdit(note.id)} disabled={busy}>
-                      Save
-                    </Button>
-                    <Button variant="outline" onClick={() => setEditingId(null)} disabled={busy}>
-                      Cancel
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-start justify-between gap-4">
-                    <h2 className="font-medium">{note.title || "Untitled"}</h2>
-                    <time className="shrink-0 text-xs text-zinc-500">
-                      {new Date(note.created_at).toLocaleString()}
-                    </time>
-                  </div>
-                  {note.content && (
-                    <p className="whitespace-pre-wrap text-sm text-zinc-700 dark:text-zinc-300">
-                      {note.content}
-                    </p>
+                  {editingId === note.id ? (
+                    <div className="flex flex-col gap-2">
+                      <Input
+                        aria-label="Title"
+                        value={editTitle}
+                        onChange={(e) => setEditTitle(e.target.value)}
+                      />
+                      <Textarea
+                        aria-label="Note"
+                        rows={4}
+                        value={editContent}
+                        onChange={(e) => setEditContent(e.target.value)}
+                      />
+                      {/* Distinct keys so React doesn't reuse (and color-animate) the Edit/Delete buttons. */}
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          key="cancel"
+                          variant="outline"
+                          onClick={() => setEditingId(null)}
+                          disabled={busy}
+                        >
+                          Cancel
+                        </Button>
+                        <Button key="save" onClick={() => saveEdit(note.id)} disabled={busy}>
+                          Save
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-baseline justify-between gap-4">
+                        <h2 className="text-base font-semibold">{note.title || "Untitled"}</h2>
+                        <time className="shrink-0 text-xs text-muted-foreground">
+                          {new Date(note.created_at).toLocaleString()}
+                        </time>
+                      </div>
+                      {note.content && (
+                        <p className="whitespace-pre-wrap text-sm leading-relaxed text-card-foreground/90">
+                          {note.content}
+                        </p>
+                      )}
+                      <div className="-ml-2.5 flex gap-1">
+                        <Button
+                          key="edit"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => startEdit(note)}
+                          disabled={busy}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          key="delete"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => deleteNote(note.id)}
+                          disabled={busy}
+                          className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                        >
+                          Delete
+                        </Button>
+                      </div>
+                    </div>
                   )}
-                  <div className="flex gap-2">
-                    <Button variant="outline" onClick={() => startEdit(note)} disabled={busy}>
-                      Edit
-                    </Button>
-                    <Button variant="destructive" onClick={() => deleteNote(note.id)} disabled={busy}>
-                      Delete
-                    </Button>
-                  </div>
-                </div>
-              )}
                 </CardContent>
               </Card>
             </li>

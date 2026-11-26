@@ -4,19 +4,22 @@ import AuthForm from "@/components/AuthForm";
 import Notes, { type Note } from "@/components/Notes";
 import WeatherWidget from "@/components/WeatherWidget";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Skeleton } from "@/components/ui/skeleton";
 import { createClient } from "@/lib/supabase/server";
 
 // Cache Components is on (Next.js 16 default), so anything that reads
 // cookies has to sit inside <Suspense>.
 export default function Home() {
   return (
-    <main className="flex flex-1 flex-col bg-zinc-50 px-4 dark:bg-black">
+    <main className="flex flex-1 flex-col bg-background px-4 pb-10">
       <div className="flex min-h-14 justify-end pt-3">
-        <Suspense fallback={<p className="text-xs text-zinc-500">Loading weather…</p>}>
+        <Suspense fallback={<Skeleton aria-label="Loading weather" className="h-11 w-44 rounded-xl" />}>
           <WeatherWidget />
         </Suspense>
       </div>
-      <Suspense fallback={<p className="mt-24 text-center text-sm text-zinc-500">Loading…</p>}>
+      <Suspense
+        fallback={<Skeleton aria-label="Loading" className="mx-auto my-auto h-80 w-full max-w-sm rounded-xl" />}
+      >
         <App />
       </Suspense>
     </main>

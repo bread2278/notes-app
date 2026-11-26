@@ -24,9 +24,9 @@ export default async function WeatherWidget() {
       <img src={iconUrl} alt="" width={32} height={32} className="h-8 w-8" />
       <div className="leading-tight">
         <p className="font-medium">
-          {tempF}°F <span className="text-zinc-500">/ {tempC}°C</span>
+          {tempF}°F <span className="text-muted-foreground">/ {tempC}°C</span>
         </p>
-        <p className="text-xs text-zinc-500">
+        <p className="text-xs text-muted-foreground">
           {location} · {condition}
         </p>
       </div>
