@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { Button } from "@/components/ui/button";
 
 export type Note = {
   id: string;
@@ -14,10 +15,6 @@ export type Note = {
 
 const inputClass =
   "rounded border border-zinc-300 bg-transparent px-3 py-2 dark:border-zinc-700";
-const primaryBtn =
-  "rounded bg-zinc-900 px-3 py-1.5 text-sm text-white disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900";
-const secondaryBtn =
-  "rounded border border-zinc-300 px-3 py-1.5 text-sm disabled:opacity-50 dark:border-zinc-700";
 
 export default function Notes({ email, initialNotes }: { email: string; initialNotes: Note[] }) {
   const router = useRouter();
@@ -95,9 +92,9 @@ export default function Notes({ email, initialNotes }: { email: string; initialN
         <h1 className="text-2xl font-semibold">My notes</h1>
         <div className="flex items-center gap-3 text-sm">
           <span className="text-zinc-500">{email}</span>
-          <button onClick={logOut} className={secondaryBtn}>
+          <Button variant="outline" onClick={logOut}>
             Log out
-          </button>
+          </Button>
         </div>
       </header>
 
@@ -119,9 +116,9 @@ export default function Notes({ email, initialNotes }: { email: string; initialN
           className={inputClass}
         />
         <div>
-          <button type="submit" disabled={busy} className={primaryBtn}>
+          <Button type="submit" disabled={busy}>
             Add note
-          </button>
+          </Button>
         </div>
       </form>
 
@@ -150,12 +147,12 @@ export default function Notes({ email, initialNotes }: { email: string; initialN
                     className={inputClass}
                   />
                   <div className="flex gap-2">
-                    <button onClick={() => saveEdit(note.id)} disabled={busy} className={primaryBtn}>
+                    <Button onClick={() => saveEdit(note.id)} disabled={busy}>
                       Save
-                    </button>
-                    <button onClick={() => setEditingId(null)} disabled={busy} className={secondaryBtn}>
+                    </Button>
+                    <Button variant="outline" onClick={() => setEditingId(null)} disabled={busy}>
                       Cancel
-                    </button>
+                    </Button>
                   </div>
                 </div>
               ) : (
@@ -172,16 +169,12 @@ export default function Notes({ email, initialNotes }: { email: string; initialN
                     </p>
                   )}
                   <div className="flex gap-2">
-                    <button onClick={() => startEdit(note)} disabled={busy} className={secondaryBtn}>
+                    <Button variant="outline" onClick={() => startEdit(note)} disabled={busy}>
                       Edit
-                    </button>
-                    <button
-                      onClick={() => deleteNote(note.id)}
-                      disabled={busy}
-                      className="rounded border border-red-300 px-3 py-1.5 text-sm text-red-600 disabled:opacity-50 dark:border-red-800"
-                    >
+                    </Button>
+                    <Button variant="destructive" onClick={() => deleteNote(note.id)} disabled={busy}>
                       Delete
-                    </button>
+                    </Button>
                   </div>
                 </div>
               )}
