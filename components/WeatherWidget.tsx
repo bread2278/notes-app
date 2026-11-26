@@ -1,5 +1,6 @@
 import { connection } from "next/server";
 import { getCurrentWeather } from "@/lib/weather";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card } from "@/components/ui/card";
 
 // Server Component: fetches on the server at request time. Only the rendered
@@ -10,12 +11,9 @@ export default async function WeatherWidget() {
 
   if (!result.ok) {
     return (
-      <p
-        role="alert"
-        className="max-w-xs rounded-lg border border-red-300 bg-red-50 px-3 py-1.5 text-xs text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-400"
-      >
-        {result.reason}
-      </p>
+      <Alert variant="destructive" className="w-auto max-w-xs border-destructive/50 py-1.5">
+        <AlertDescription className="text-xs">{result.reason}</AlertDescription>
+      </Alert>
     );
   }
 

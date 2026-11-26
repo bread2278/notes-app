@@ -3,6 +3,7 @@ import { connection } from "next/server";
 import AuthForm from "@/components/AuthForm";
 import Notes, { type Note } from "@/components/Notes";
 import WeatherWidget from "@/components/WeatherWidget";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { createClient } from "@/lib/supabase/server";
 
 // Cache Components is on (Next.js 16 default), so anything that reads
@@ -43,7 +44,9 @@ async function App() {
   return (
     <>
       {error && (
-        <p className="mx-auto mt-4 text-sm text-red-600">Couldn&apos;t load notes: {error.message}</p>
+        <Alert variant="destructive" className="mx-auto mt-4 max-w-2xl">
+          <AlertDescription>Couldn&apos;t load notes: {error.message}</AlertDescription>
+        </Alert>
       )}
       <Notes key={user.id} email={user.email ?? ""} initialNotes={(notes ?? []) as Note[]} />
     </>
