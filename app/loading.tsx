@@ -6,7 +6,7 @@ import { NotesSkeleton, WeatherSkeleton } from "@/components/Skeletons";
 export default function Loading() {
   return (
     <main className="flex flex-1 flex-col bg-background px-4 pb-10">
-      <div className="flex min-h-14 justify-end pt-3">
+      <div className="mx-auto flex min-h-14 w-full max-w-2xl justify-end pt-3">
         <WeatherSkeleton />
       </div>
       <NotesSkeleton />

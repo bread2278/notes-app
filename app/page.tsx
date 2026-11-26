@@ -15,7 +15,9 @@ import { createClient } from "@/lib/supabase/server";
 export default function Home() {
   return (
     <main className="flex flex-1 flex-col bg-background px-4 pb-10">
-      <div className="flex min-h-14 justify-end pt-3">
+      {/* Same max width as the notes column, so the widget lines up with the
+          header below it instead of drifting to the window corner on wide screens. */}
+      <div className="mx-auto flex min-h-14 w-full max-w-2xl justify-end pt-3">
         <Suspense fallback={<WeatherSkeleton />}>
           <WeatherWidget />
         </Suspense>
