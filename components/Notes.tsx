@@ -195,7 +195,7 @@ export default function Notes({
             disabled={busy}
             aria-busy={pending === "logout" || refreshing}
           >
-            {(pending === "logout" || refreshing) && <Spinner data-icon="inline-start" />}
+            {(pending === "logout" || refreshing) && <Spinner data-icon="inline-start" aria-hidden="true" />}
             Log out
           </Button>
         </div>
@@ -245,7 +245,7 @@ export default function Notes({
             </CardContent>
             <CardFooter className="justify-end">
               <Button type="submit" disabled={busy || !canCreate} aria-busy={pending === "create"}>
-                {pending === "create" && <Spinner data-icon="inline-start" />}
+                {pending === "create" && <Spinner data-icon="inline-start" aria-hidden="true" />}
                 Add note
               </Button>
             </CardFooter>
@@ -290,7 +290,7 @@ export default function Notes({
                           disabled={busy || !canSave(note)}
                           aria-busy={pending === `save:${note.id}`}
                         >
-                          {pending === `save:${note.id}` && <Spinner data-icon="inline-start" />}
+                          {pending === `save:${note.id}` && <Spinner data-icon="inline-start" aria-hidden="true" />}
                           Save
                         </Button>
                       </div>
@@ -336,7 +336,7 @@ export default function Notes({
                           aria-busy={pending === `delete:${note.id}`}
                           className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                         >
-                          {pending === `delete:${note.id}` && <Spinner data-icon="inline-start" />}
+                          {pending === `delete:${note.id}` && <Spinner data-icon="inline-start" aria-hidden="true" />}
                           Delete
                         </Button>
                       </div>
