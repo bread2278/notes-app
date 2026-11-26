@@ -153,9 +153,13 @@ export default function Notes({
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 pt-2">
       <header className="flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-semibold">My notes</h1>
-        <div className="flex items-center gap-3 text-sm">
-          <span className="truncate text-muted-foreground">{email}</span>
+        {/* The title and Log out never shrink; only the email gives way. */}
+        <h1 className="shrink-0 text-2xl font-semibold">My notes</h1>
+        {/* min-w-0 lets this flex item shrink below its content so the email can truncate. */}
+        <div className="flex min-w-0 items-center gap-3 text-sm">
+          <span className="min-w-0 truncate text-muted-foreground" title={email}>
+            {email}
+          </span>
           <Button
             variant="outline"
             onClick={logOut}
