@@ -265,7 +265,9 @@ export default function Notes({
                     </div>
                   ) : (
                     <div className="flex flex-col gap-2">
-                      <div className="flex items-baseline justify-between gap-4">
+                      {/* Phones: timestamp under the title so the title gets the full width.
+                          sm and up: side by side. */}
+                      <div className="flex flex-col gap-0.5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
                         {/* min-w-0 + wrap-anywhere: long unbroken titles wrap inside the card. */}
                         <h2 className="min-w-0 text-base font-semibold wrap-anywhere">
                           {note.title || "Untitled"}
