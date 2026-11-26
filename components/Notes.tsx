@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 export type Note = {
   id: string;
@@ -13,8 +15,6 @@ export type Note = {
   created_at: string;
 };
 
-const inputClass =
-  "rounded border border-zinc-300 bg-transparent px-3 py-2 dark:border-zinc-700";
 
 export default function Notes({ email, initialNotes }: { email: string; initialNotes: Note[] }) {
   const router = useRouter();
@@ -102,18 +102,18 @@ export default function Notes({ email, initialNotes }: { email: string; initialN
         onSubmit={createNote}
         className="flex flex-col gap-2 rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900"
       >
-        <input
+        <Input
           placeholder="Title"
+          aria-label="Title"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          className={inputClass}
         />
-        <textarea
+        <Textarea
           placeholder="Write a note…"
+          aria-label="Note"
           rows={3}
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          className={inputClass}
         />
         <div>
           <Button type="submit" disabled={busy}>
@@ -135,16 +135,16 @@ export default function Notes({ email, initialNotes }: { email: string; initialN
             >
               {editingId === note.id ? (
                 <div className="flex flex-col gap-2">
-                  <input
+                  <Input
+                    aria-label="Title"
                     value={editTitle}
                     onChange={(e) => setEditTitle(e.target.value)}
-                    className={inputClass}
                   />
-                  <textarea
+                  <Textarea
+                    aria-label="Note"
                     rows={4}
                     value={editContent}
                     onChange={(e) => setEditContent(e.target.value)}
-                    className={inputClass}
                   />
                   <div className="flex gap-2">
                     <Button onClick={() => saveEdit(note.id)} disabled={busy}>
