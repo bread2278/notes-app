@@ -264,12 +264,13 @@ export default function Notes({
                       <Input
                         // Edit was just pressed and has disappeared: move focus into the form.
                         autoFocus
-                        aria-label="Title"
+                        // Distinct from the new-note form's "Title" field.
+                        aria-label="Edit title"
                         value={editTitle}
                         onChange={(e) => setEditTitle(e.target.value)}
                       />
                       <Textarea
-                        aria-label="Note"
+                        aria-label="Edit note text"
                         rows={4}
                         value={editContent}
                         onChange={(e) => setEditContent(e.target.value)}
@@ -304,7 +305,7 @@ export default function Notes({
                         <h2 className="min-w-0 text-base font-semibold wrap-anywhere">
                           {note.title || "Untitled"}
                         </h2>
-                        <time className="shrink-0 text-xs text-muted-foreground">
+                        <time dateTime={note.created_at} className="shrink-0 text-xs text-muted-foreground">
                           {new Date(note.created_at).toLocaleString()}
                         </time>
                       </div>
@@ -324,6 +325,8 @@ export default function Notes({
                           size="sm"
                           onClick={() => startEdit(note)}
                           disabled={busy}
+                          // Says which note; starts with the visible word so voice control still matches.
+                          aria-label={`Edit note: ${note.title || "Untitled"}`}
                         >
                           Edit
                         </Button>
@@ -334,6 +337,7 @@ export default function Notes({
                           onClick={() => deleteNote(note.id)}
                           disabled={busy}
                           aria-busy={pending === `delete:${note.id}`}
+                          aria-label={`Delete note: ${note.title || "Untitled"}`}
                           className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                         >
                           {pending === `delete:${note.id}` && <Spinner data-icon="inline-start" aria-hidden="true" />}
