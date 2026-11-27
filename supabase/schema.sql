@@ -14,6 +14,23 @@ create table if not exists public.notes (
 
 create index if not exists notes_user_id_idx on public.notes (user_id);
 
+-- Input limits, enforced by the database itself. The app validates the same
+-- rules with Zod in its Server Actions (lib/validation.ts), but the publishable
+-- key lets anyone call Supabase directly, so the database is the layer that
+-- can't be bypassed. NOT VALID: applies to every new insert/update without
+-- re-checking rows that already exist, so this script never fails on old data.
+alter table public.notes drop constraint if exists notes_title_length;
+alter table public.notes add constraint notes_title_length
+  check (char_length(title) <= 200) not valid;
+
+alter table public.notes drop constraint if exists notes_content_length;
+alter table public.notes add constraint notes_content_length
+  check (char_length(content) <= 20000) not valid;
+
+alter table public.notes drop constraint if exists notes_not_empty;
+alter table public.notes add constraint notes_not_empty
+  check (btrim(title) <> '' or btrim(content) <> '') not valid;
+
 -- Let logged-in users touch the table at all; RLS below still limits them
 -- to their own rows. Logged-out (anon) users get no grant and no access.
 grant select, insert, update, delete on public.notes to authenticated;
