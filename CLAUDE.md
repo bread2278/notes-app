@@ -56,7 +56,7 @@ npm run start        # serve the production build
 npm run lint         # lint
 ```
 
-Requires `.env.local` with:
+Requires `.env.local` (copy `.env.example`, which is committed with empty values) with:
 
 ```
 NEXT_PUBLIC_SUPABASE_URL=...
