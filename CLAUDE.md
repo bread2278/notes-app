@@ -76,6 +76,17 @@ can't affect production. `next dev` reloads `.env.local` automatically; refresh 
 - `logDevError()` logs the full error and a stack trace in development only.
 - Wrap note queries in `runDb()` so the error simulation applies.
 
+## Input validation
+
+- Note writes go through Server Actions in `app/actions/notes.ts`, never straight from the
+  browser to Supabase. Each action re-checks the user, validates with Zod, then writes with the
+  server Supabase client (RLS still applies). Server Actions are public POST endpoints: always
+  validate and authenticate inside them.
+- Schemas and limits live in `lib/validation.ts` (title ≤ 200, text ≤ 20,000, not both empty,
+  ids are UUIDs). Forms mirror the limits with `maxLength`; `supabase/schema.sql` enforces the
+  same limits with CHECK constraints, since the publishable key allows direct Supabase calls.
+- `/auth/callback` query params are validated with `oauthCallbackSchema` before use.
+
 ## Rules
 
 - Never commit `.env.local` or any secret, and never print or log key values.

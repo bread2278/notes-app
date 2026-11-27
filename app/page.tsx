@@ -75,7 +75,6 @@ async function App() {
         key={user.id}
         email={user.email ?? ""}
         initialNotes={notes ?? []}
-        simulateDbError={simulate.writes}
         loadFailed={!!error}
       />
     </>

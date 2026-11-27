@@ -5,8 +5,15 @@ import { flushSync } from "react-dom";
 import { useRouter } from "next/navigation";
 import { NotepadTextIcon } from "lucide-react";
 import { toast } from "sonner";
-import { friendly, logDevError, runDb } from "@/lib/errors";
+import {
+  createNoteAction,
+  deleteNoteAction,
+  updateNoteAction,
+  type ActionResult,
+} from "@/app/actions/notes";
+import { friendly, logDevError } from "@/lib/errors";
 import { createClient } from "@/lib/supabase/client";
+import { NOTE_CONTENT_MAX, NOTE_TITLE_MAX } from "@/lib/validation";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -34,15 +41,12 @@ type Pending = "create" | "logout" | `save:${string}` | `delete:${string}`;
 export default function Notes({
   email,
   initialNotes,
-  simulateDbError = false,
   loadFailed = false,
 }: {
   email: string;
   initialNotes: Note[];
   /** Loading notes failed, so an empty list doesn't mean "no notes yet". */
   loadFailed?: boolean;
-  /** Dev-only: make every note save/delete fail (see lib/simulate.ts). */
-  simulateDbError?: boolean;
 }) {
   const router = useRouter();
   const supabase = createClient();
@@ -82,23 +86,36 @@ export default function Notes({
     editButtons.current.get(id)?.focus();
   }
 
+  /**
+   * Calls a Server Action. Validation and database errors come back as
+   * friendly messages; a thrown error (e.g. the network dropped) becomes
+   * `fallback`. Raw error details are only logged, in development.
+   */
+  async function run<T>(
+    context: string,
+    fallback: string,
+    action: () => Promise<ActionResult<T>>,
+  ): Promise<ActionResult<T>> {
+    try {
+      return await action();
+    } catch (error) {
+      logDevError(context, error);
+      return { ok: false, message: fallback };
+    }
+  }
+
   async function createNote(e: React.FormEvent) {
     e.preventDefault();
     if (!canCreate) return;
     setPending("create");
-    // user_id is filled in by the database default (auth.uid()); RLS checks it.
-    const { data, error } = await runDb<Note>(simulateDbError, () =>
-      supabase
-        .from("notes")
-        .insert({ title: title.trim(), content: content.trim() })
-        .select()
-        .single(),
+    // The server action re-validates (Zod) and checks the user; RLS checks ownership.
+    const result = await run("create note", friendly.saveNote, () =>
+      createNoteAction({ title, content }),
     );
-    if (error || !data) {
-      logDevError("create note", error);
-      toast.error(friendly.saveNote);
+    if (!result.ok) {
+      toast.error(result.message);
     } else {
-      setNotes([data, ...notes]);
+      setNotes([result.data, ...notes]);
       setTitle("");
       setContent("");
       toast.success("Note saved.");
@@ -122,19 +139,14 @@ export default function Notes({
 
   async function saveEdit(id: string) {
     setPending(`save:${id}`);
-    const { data, error } = await runDb<Note>(simulateDbError, () =>
-      supabase
-        .from("notes")
-        .update({ title: editTitle.trim(), content: editContent.trim() })
-        .eq("id", id)
-        .select()
-        .single(),
+    const result = await run("save note", friendly.saveNote, () =>
+      updateNoteAction({ id, title: editTitle, content: editContent }),
     );
-    if (error || !data) {
-      logDevError("save note", error);
-      toast.error(friendly.saveNote);
+    if (!result.ok) {
+      toast.error(result.message);
     } else {
-      closeEditor(id, () => setNotes(notes.map((n) => (n.id === id ? data : n))));
+      const saved = result.data;
+      closeEditor(id, () => setNotes(notes.map((n) => (n.id === id ? saved : n))));
       toast.success("Note saved.");
     }
     setPending(null);
@@ -143,12 +155,9 @@ export default function Notes({
   async function deleteNote(id: string) {
     if (!confirm("Delete this note?")) return;
     setPending(`delete:${id}`);
-    const { error } = await runDb<null>(simulateDbError, () =>
-      supabase.from("notes").delete().eq("id", id),
-    );
-    if (error) {
-      logDevError("delete note", error);
-      toast.error(friendly.deleteNote);
+    const result = await run("delete note", friendly.deleteNote, () => deleteNoteAction({ id }));
+    if (!result.ok) {
+      toast.error(result.message);
     } else {
       // Focus the next note (or the previous one if this was last); with no
       // notes left, the empty-state button or the new-note Title field.
@@ -230,6 +239,7 @@ export default function Notes({
                 ref={composerTitle}
                 placeholder="Title"
                 aria-label="Title"
+                maxLength={NOTE_TITLE_MAX}
                 // Coming from the empty state: put the cursor straight in the form.
                 autoFocus={composing}
                 value={title}
@@ -238,6 +248,7 @@ export default function Notes({
               <Textarea
                 placeholder="Write a note…"
                 aria-label="Note"
+                maxLength={NOTE_CONTENT_MAX}
                 rows={3}
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
@@ -266,11 +277,13 @@ export default function Notes({
                         autoFocus
                         // Distinct from the new-note form's "Title" field.
                         aria-label="Edit title"
+                        maxLength={NOTE_TITLE_MAX}
                         value={editTitle}
                         onChange={(e) => setEditTitle(e.target.value)}
                       />
                       <Textarea
                         aria-label="Edit note text"
+                        maxLength={NOTE_CONTENT_MAX}
                         rows={4}
                         value={editContent}
                         onChange={(e) => setEditContent(e.target.value)}
